@@ -9,4 +9,4 @@ DCS is a data-driven methodology to facilitate a personalized customer experienc
 
 Architecture diagram
 
-![Architecture diagram](design/SMBA-DCS Revised.jpg)
+![Architecture diagram](design/Architecture-diagram.jpg)
