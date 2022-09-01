@@ -6,3 +6,7 @@ SMBA is an analytical business intelligence solution that helps SMB CSMs monitor
 
 DCS
 DCS is a data-driven methodology to facilitate a personalized customer experience regardless of a customer’s segment or lifecycle stage. We are piloting DCS in SMB and to initially provide tech-touch support, without human intervention to MAP 2.0 migrations as new customers onboard. 
+
+Architecture diagram
+
+![image info](./design/SMBA-DCS Revised.jpg)
