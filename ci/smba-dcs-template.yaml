@@ -1,0 +1,137 @@
+---
+## SMBA and DCS application stack
+## Main Stack which creates KMS, S3 bucket, Lambda function, SNS, SES and Aurora PostgreSQL Cluster
+##
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "smba-dcs application stack template"
+
+Resources:
+  # KMS S3 encryption key
+  S3KMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: key-s3
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Join
+                - ''
+                - - 'arn:aws:iam::'
+                  - !Ref 'AWS::AccountId'
+                  - ':root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow S3 to use the Key
+            Effect: Allow
+            Principal:
+              Service:
+                - s3.us-east-1.amazonaws.com
+            Action:
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"
+            Resource: '*'
+  s3KeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/SMBA-S3-KEY
+      TargetKeyId:
+        Ref: S3KMSKey
+
+  SMBASourceS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Join ["-", [ !Ref AWS::AccountId, !Ref "AWS::Region", "smba-source-bucket"] ]  
+      LoggingConfiguration:
+        DestinationBucketName: !Ref SMBAAccessLogS3Bucket
+        LogFilePrefix: "source-access"
+      AccessControl: "LogDeliveryWrite"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: "aws:kms"
+              KMSMasterKeyID:
+                Ref: "S3KMSKey"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  SMBATargetS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Join ["-", [ !Ref AWS::AccountId, !Ref "AWS::Region", "smba-tarket-bucket"] ]  
+      LoggingConfiguration:
+        DestinationBucketName: !Ref SMBAAccessLogS3Bucket
+        LogFilePrefix: "target-access"
+      AccessControl: "LogDeliveryWrite"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: "aws:kms"
+              KMSMasterKeyID:
+                Ref: "S3KMSKey"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  SMBAAccessLogS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Join ["-", [ !Ref AWS::AccountId, !Ref "AWS::Region", "smba-accesslog-bucket"] ]  
+      LoggingConfiguration: {}
+      AccessControl: "Private"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: "aws:kms"
+              KMSMasterKeyID:
+                Ref: "S3KMSKey"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  #TODO
+  LambdaFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "ETL Lambda"
+      FunctionName: "ETL Lambda"
+      Role: ""
+      PackageType: "Zip"
+      Runtime: "python3.8"
+      Handler: "index.lambda_handler"
+      MemorySize: 128
+      Timeout: 120
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-085912345678492fb
+        SubnetIds:
+          - subnet-071f712345678e7c8
+          - subnet-07fd123456788a036
+      Code:
+        ZipFile: |
+          import os
+          from os import walk
+          import base64
+          import math
+
+          def lambda_handler(event, context):
+              # get operation type
+              try:
+                  operation_type = event['operation']
+              except KeyError:
+                  raise Exception('Missing required parameter in event: "operation"')
+
+Parameters: {}
+Metadata: {}
+Conditions: {}

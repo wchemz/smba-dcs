@@ -1,4 +1,8 @@
 ---
+## SMBA and DCS VPC stack
+## VPC Stack which VPC, subnet, security groups
+##
+
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "smba-dcs VPC nested stack template"
 
@@ -135,8 +139,6 @@ Resources:
           - "1"
           - Fn::GetAZs:
               Ref: "AWS::Region"
-
-
   RouteTablePrivate1:
     Type: "AWS::EC2::RouteTable"
     Properties:
@@ -159,7 +161,6 @@ Resources:
         Ref: "RouteTablePrivate1"
       SubnetId:
         Ref: "PrivateSubnet2"
-
   RouteTablePrivate2:
     Type: "AWS::EC2::RouteTable"
     Properties:
@@ -182,7 +183,6 @@ Resources:
         Ref: "RouteTablePrivate2"
       SubnetId:
         Ref: "PrivateSubnet4"
-
   RouteTablePrivate3:
     Type: "AWS::EC2::RouteTable"
     Properties:
@@ -198,14 +198,13 @@ Resources:
         Ref: "RouteTablePrivate3"
       SubnetId:
         Ref: "PrivateSubnet5"
-  RouteTablePrivate3Association1:
+  RouteTablePrivate3Association2:
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
       RouteTableId:
         Ref: "RouteTablePrivate3"
       SubnetId:
         Ref: "PrivateSubnet6"
-
   RouteTablePrivate4:
     Type: "AWS::EC2::RouteTable"
     Properties:
@@ -228,7 +227,10 @@ Resources:
         Ref: "RouteTablePrivate4"
       SubnetId:
         Ref: "PrivateSubnet8"
-
+  LogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 365
   CloudWatchVPCRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -251,10 +253,6 @@ Resources:
             - 'logs:DescribeLogGroups'
             - 'logs:DescribeLogStreams'
             Resource: !GetAtt 'LogGroup.Arn'
-  LogGroup:
-    Type: 'AWS::Logs::LogGroup'
-    Properties:
-      RetentionInDays: 365
   FlowLogs:
     Type: "AWS::EC2::FlowLog"
     Properties:
@@ -295,6 +293,45 @@ Resources:
           IpProtocol: "-1"
       VpcId:
         Ref: "VPC"
+  
+  SMBAlambdaSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: "Security group for SMBA ETL lambda function"
+      GroupName: SMBA-Lambda-SG
+      Tags:
+        - Key: "Name"
+          Value: "SMBA-Lambda-SG"
+      VpcId:
+          Ref: "VPC"
+  
+  SMBAlambdaSGEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties: 
+      CidrIp: "0.0.0.0/0"
+      Description: "SMBAlambdaSGEgress Rule"
+      GroupId: !Ref SMBAlambdaSG
+      IpProtocol: "-1"
+
+  DCSlambdaSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: "Security group for DCS lambda function"
+      GroupName: DCS-Lambda-SG
+      Tags:
+        - Key: "Name"
+          Value: "DCS-Lambda-SG"
+      VpcId:
+          Ref: "VPC"
+  
+  DCSlambdaSGEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties: 
+      CidrIp: "0.0.0.0/0"
+      Description: "DCSlambdaSGEgress Rule"
+      GroupId: !Ref DCSlambdaSG
+      IpProtocol: "-1"
+
 Parameters: {}
 Metadata: {}
 Conditions: {}
