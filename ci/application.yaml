@@ -108,7 +108,15 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref SMBAETLLambdaFunction
       Principal: s3.amazonaws.com
-      SourceArn: !Ref SMBASourceS3Bucket
+      SourceArn:
+      - !Join
+        - ''
+        - - 'arn:'
+          - !Ref AWS::Partition
+          - ':s3:::'
+          - !Ref AWS::AccountId
+          - !Ref AWS::Region
+          - 'smba-tarket-bucket/*'
 
   SMBATargetS3Bucket:
     Type: "AWS::S3::Bucket"
