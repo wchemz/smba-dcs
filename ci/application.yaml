@@ -11,18 +11,18 @@ Parameters:
     Type: String
     Description: Name used for different elements created.
     Default: 'application'
-  SMBADbSubnet1:
+  SMBALambdaSubnet1:
     Type: String
-    Description: SMBA Db Subnet 1
-  SMBADbSubnet2:
+    Description: SMBA Lambda Subnet 1
+  SMBALambdaSubnet2:
     Type: String
-    Description: SMBA Db Subnet 2
-  DCSDbSubnet1:
+    Description: SMBA Lambda Subnet 2
+  DCSLambdaSubnet1:
     Type: String
-    Description: DCS Db Subnet 1
-  DCSDbSubnet2:
+    Description: DCS Lambda Subnet 1
+  DCSLambdaSubnet2:
     Type: String
-    Description: DCS Db Subnet 1
+    Description: DCS Lambda Subnet 1
   MainVPC:
     Type: AWS::EC2::VPC::Id
     Description: Main VPC id
@@ -133,7 +133,7 @@ Resources:
     Properties:
       Description: "ETL Lambda"
       FunctionName: "ETL Lambda"
-      Role: ""
+      !GetAtt 'SMBAETLLambdaFunctionRole.Arn'
       PackageType: "Zip"
       Runtime: "python3.8"
       Handler: "index.lambda_handler"
@@ -141,10 +141,10 @@ Resources:
       Timeout: 120
       VpcConfig:
         SecurityGroupIds:
-          - !Ref: SMBAlambdaSG
+          - !Ref SMBAlambdaSG
         SubnetIds:
-          - subnet-071f712345678e7c8
-          - subnet-07fd123456788a036
+          - !Ref SMBALambdaSubnet1
+          - !Ref SMBALambdaSubnet2
       Code:
         ZipFile: |
           import os
@@ -158,6 +158,89 @@ Resources:
                   operation_type = event['operation']
               except KeyError:
                   raise Exception('Missing required parameter in event: "operation"')
+  
+  SMBAETLLambdaFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SMBAETLLambdaFunctionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: SMBAETLLambdaFunctionRole-Logs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+              - Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                Resource: '*'
+        - PolicyName: SMBAETLLambdaFunctionRole-KMS
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - kms:DescribeKey
+                  - kms:TagResource
+                  - kms:PutKeyPolicy
+                  - kms:GetKeyRotationStatus
+                  - kms:EnableKeyRotation
+                Resource:
+                  - !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
+              - Effect: "Allow"
+                Action:
+                  - kms:CreateKey
+                  - kms:ListAliases
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - kms:CreateAlias
+                Resource:
+                  - !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/*
+                  - !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
+        - PolicyName: SMBAETLLambdaFunctionRole-S3
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - !Sub arn:${AWS::Partition}:s3:::${SMBASourceS3Bucket}/*
+              - Effect: "Allow"
+                Action:
+                  - s3:PutObject
+                Resource:
+                  - !Sub arn:${AWS::Partition}:s3:::${SMBATargetS3Bucket}/*
+        - PolicyName: SMBAETLLambdaFunctionRole-SSM
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:PutParameter
+                  - ssm:GetParameter
+                  - ssm:DeleteParameter
+                  - ssm:GetParametersByPath
+                Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+              - Effect: Allow
+                Action:
+                  - ssm:DescribeParameters
+                Resource: '*' # The APIs above only support '*' resource.  
 
 
 Metadata: {}
