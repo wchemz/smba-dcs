@@ -116,7 +116,7 @@ Resources:
           - ':s3:::'
           - !Ref AWS::AccountId
           - !Ref AWS::Region
-          - 'smba-tarket-bucket/*'
+          - 'smba-source-bucket/*'
 
   SMBATargetS3Bucket:
     Type: "AWS::S3::Bucket"
@@ -256,7 +256,7 @@ Resources:
                       - ':s3:::'
                       - !Ref AWS::AccountId
                       - !Ref AWS::Region
-                      - 'smba-tarket-bucket/*'
+                      - 'smba-source-bucket/*'
               - Effect: "Allow"
                 Action:
                   - s3:PutObject
