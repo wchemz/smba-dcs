@@ -6,6 +6,33 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "smba-dcs application stack template"
 
+Parameters:
+  TemplateName:
+    Type: String
+    Description: Name used for different elements created.
+    Default: 'application'
+  SMBADbSubnet1:
+    Type: String
+    Description: SMBA Db Subnet 1
+  SMBADbSubnet2:
+    Type: String
+    Description: SMBA Db Subnet 2
+  DCSDbSubnet1:
+    Type: String
+    Description: DCS Db Subnet 1
+  DCSDbSubnet2:
+    Type: String
+    Description: DCS Db Subnet 1
+  MainVPC:
+    Type: AWS::EC2::VPC::Id
+    Description: Main VPC id
+  SMBAlambdaSG:
+    Type: String
+    Description: SMBA lambda SG
+  DCSlambdaSG:
+    Type: String
+    Description: DCS lambda SG
+
 Resources:
   # KMS S3 encryption key
   S3KMSKey:
@@ -101,7 +128,7 @@ Resources:
         RestrictPublicBuckets: true
 
   #TODO
-  LambdaFunction:
+  SMBAETLLambdaFunction:
     Type: "AWS::Lambda::Function"
     Properties:
       Description: "ETL Lambda"
@@ -114,7 +141,7 @@ Resources:
       Timeout: 120
       VpcConfig:
         SecurityGroupIds:
-          - sg-085912345678492fb
+          - !Ref: SMBAlambdaSG
         SubnetIds:
           - subnet-071f712345678e7c8
           - subnet-07fd123456788a036
@@ -132,6 +159,6 @@ Resources:
               except KeyError:
                   raise Exception('Missing required parameter in event: "operation"')
 
-Parameters: {}
+
 Metadata: {}
 Conditions: {}

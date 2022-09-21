@@ -1,0 +1,430 @@
+---
+## SMBA and DCS aurora database stack
+##
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Amazon Aurora PostgreSQL Aurora stack
+
+## Parameters
+Parameters:
+  CreateInstance:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Determines if Aurora PostgreSQL Cluster needs to be created.
+  TemplateName:
+    Type: String
+    Description: Name used for different elements created.
+    Default: 'database'
+  SMBAlambdaSG:
+    Type: String
+    Description: SMBA lambda SG
+  DCSlambdaSG:
+    Type: String
+    Description: DCS lambda SG
+  SMBADbSubnet1:
+    Type: String
+    Description: SMBA Db Subnet 1
+  SMBADbSubnet2:
+    Type: String
+    Description: SMBA Db Subnet 2
+  DCSDbSubnet1:
+    Type: String
+    Description: DCS Db Subnet 1
+  DCSDbSubnet2:
+    Type: String
+    Description: DCS Db Subnet 1
+  MainVPC:
+    Type: AWS::EC2::VPC::Id
+    Description: Main VPC id
+  DBInstanceClass:
+    Description: 'The instance type of database server.'
+    Type: String
+    Default: 'db.r6g.xlarge'
+  DBMasterUsername:
+    Description: 'The master user name for the DB instance'
+    Type: String
+    Default: masteruser
+  DBEngineVersion:
+    Description: Select Database Engine Version
+    Type: String
+    Default: 13.6
+    AllowedValues:
+      - 13.6
+    
+## Conditions
+Conditions:
+  WithInstance: !Equals [!Ref CreateInstance, "true"]
+  
+ ## Mappings
+Mappings:
+  ClusterSettings:
+    global:
+      smbaSchema: smba
+      dcsSchema: dcs
+      dbDriver: pgsql
+      dbFamily: aurora-postgresql13
+      
+## Resources
+Resources:
+## Create enhanced monitoring role
+  roleEnhancedMonitoring:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${TemplateName}-monitor-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - monitoring.rds.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole
+
+## Role to overcome current limitations in CFN ScalableTarget implementation
+## This role is *NOT* actively used by any resource and service, but must be present
+  roleScalableTarget:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${TemplateName}-scltarget-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - rds.application-autoscaling.amazonaws.com
+
+## Create a random generated password and store it in AWS secret manager
+  SMBADBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: !Sub "Master user credentials for ${TemplateName}-cluster"
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "masteruser"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 10
+        #ExcludeCharacters: '"@/\$`&_,{}[]~+=|;:^*-()!#?'''
+        ExcludePunctuation: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${TemplateName}-SMBADB-secret
+  
+  DCSDBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: !Sub "Master user credentials for ${TemplateName}-cluster"
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "masteruser"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 10
+        #ExcludeCharacters: '"@/\$`&_,{}[]~+=|;:^*-()!#?'''
+        ExcludePunctuation: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${TemplateName}-DCS-secret
+
+## Create DB security group
+  SMBAdbSecGroupCluster:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref MainVPC
+      GroupName: !Sub ${TemplateName}-smba-dbsg
+      GroupDescription: SMBA Database Firewall
+      Tags:
+        - Key: Name
+          Value: !Sub ${TemplateName}-smba-dbsg
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref SMBAlambdaSG
+          Description: Allows SMBA AU PG access from SMBAlambdaSG
+  
+  DCSdbSecGroupCluster:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref MainVPC
+      GroupName: !Sub ${TemplateName}-dcs-dbsg
+      GroupDescription: DCS Database Firewall
+      Tags:
+        - Key: Name
+          Value: !Sub ${TemplateName}-dcs-dbsg
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref DCSlambdaSG
+          Description: Allows DCS AU PG access from DCSlambdaSG
+          
+## Add self reference ingress rule
+  SMBAdbSecGroupClusterIngress:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !GetAtt 'SMBAdbSecGroupCluster.GroupId'
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref SMBAdbSecGroupCluster
+      Description: 'Self Reference'
+
+  DCSdbSecGroupClusterIngress:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !GetAtt 'DCSdbSecGroupCluster.GroupId'
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref DCSdbSecGroupCluster
+      Description: 'Self Reference'
+
+ ## Create DB subnet group
+  SMBAdbSubnets:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub ${TemplateName}-smba-db-subnet-group
+      DBSubnetGroupDescription: !Sub ${TemplateName}-smba-db-subnet-group
+      SubnetIds:
+        - !Ref SMBADbSubnet1
+        - !Ref SMBADbSubnet2
+      Tags:
+        - 
+          Key: Name
+          Value: !Sub ${TemplateName}-smba-db-subnet-group
+
+  DCSdbSubnets:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub ${TemplateName}-dcs-db-subnet-group
+      DBSubnetGroupDescription: !Sub ${TemplateName}-dcs-db-subnet-group
+      SubnetIds:
+        - !Ref DCSDbSubnet1
+        - !Ref DCSDbSubnet2
+      Tags:
+        - 
+          Key: Name
+          Value: !Sub ${TemplateName}-dcs-db-subnet-group
+
+ ## Create parameter groups for cluster nodes
+  apgcustomdbparamgroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: !Sub ${TemplateName}-dbparamgroup
+      Family: !FindInMap [ ClusterSettings, global, dbFamily ]
+      Parameters:
+        log_rotation_age: '1440'
+        log_rotation_size: '102400'
+      Tags:
+        - Key: Name
+          Value: !Sub ${TemplateName}-dbparamgroup
+
+ ## Create cluster parameter group
+  apgcustomclusterparamgroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Description: !Sub ${TemplateName}-clusterparamgroup
+      Family: !FindInMap [ ClusterSettings, global, dbFamily ]
+      Parameters:
+        rds.force_ssl: 0
+        shared_preload_libraries: 'pg_stat_statements,pg_hint_plan,auto_explain'
+      Tags:
+        - Key: Name
+          Value: !Sub ${TemplateName}-clusterparamgroup
+
+ ## Create Aurora cluster
+  SMBAdbCluster:
+    Condition: WithInstance
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-postgresql
+      EngineVersion : !Ref DBEngineVersion
+      Port: 5432
+      DBSubnetGroupName: !Ref SMBAdbSubnets
+      DBClusterParameterGroupName: !Ref apgcustomclusterparamgroup
+      DBClusterIdentifier: !Sub ${TemplateName}-smba-cluster
+      BackupRetentionPeriod: 35
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SMBADBSecret, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref SMBADBSecret, ':SecretString:password}}' ]]
+      DatabaseName: !FindInMap [ ClusterSettings, global, smbaSchema ]
+      StorageEncrypted: true
+      VpcSecurityGroupIds: [ !Ref SMBAdbSecGroupCluster ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${TemplateName}-smba-cluster
+  
+  DCSdbCluster:
+    Condition: WithInstance
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-postgresql
+      EngineVersion : !Ref DBEngineVersion
+      Port: 5432
+      DBSubnetGroupName: !Ref DCSdbSubnets
+      DBClusterParameterGroupName: !Ref apgcustomclusterparamgroup
+      DBClusterIdentifier: !Sub ${TemplateName}-dcs-cluster
+      BackupRetentionPeriod: 35
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref DCSDBSecret, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref DCSDBSecret, ':SecretString:password}}' ]]
+      DatabaseName: !FindInMap [ ClusterSettings, global, dcsSchema ]
+      StorageEncrypted: true
+      VpcSecurityGroupIds: [ !Ref DCSdbSecGroupCluster ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${TemplateName}-dcs-cluster
+
+## Deploy the first cluster node (always the writer)
+  SMBAdbNodeWriter:
+    Condition: WithInstance
+    Type: AWS::RDS::DBInstance
+    DependsOn: SMBAdbCluster
+    Properties:
+      DBClusterIdentifier: !Ref SMBAdbCluster
+      DBInstanceIdentifier: !Sub smba-node-01
+      CopyTagsToSnapshot: true
+      DBInstanceClass: !Ref DBInstanceClass
+      DBParameterGroupName: !Ref apgcustomdbparamgroup
+      Engine: aurora-postgresql
+      EngineVersion : !Ref DBEngineVersion
+      MonitoringInterval: 1
+      MonitoringRoleArn: !GetAtt roleEnhancedMonitoring.Arn
+      PubliclyAccessible: false
+      EnablePerformanceInsights: true
+      PerformanceInsightsRetentionPeriod: 7
+      AutoMinorVersionUpgrade: false
+      Tags:
+        - Key: Name
+          Value: !Sub smba-node-01
+
+  DCSdbNodeWriter:
+    Condition: WithInstance
+    Type: AWS::RDS::DBInstance
+    DependsOn: DCSdbCluster
+    Properties:
+      DBClusterIdentifier: !Ref DCSdbCluster
+      DBInstanceIdentifier: !Sub dcs-node-01
+      CopyTagsToSnapshot: true
+      DBInstanceClass: !Ref DBInstanceClass
+      DBParameterGroupName: !Ref apgcustomdbparamgroup
+      Engine: aurora-postgresql
+      EngineVersion : !Ref DBEngineVersion
+      MonitoringInterval: 1
+      MonitoringRoleArn: !GetAtt roleEnhancedMonitoring.Arn
+      PubliclyAccessible: false
+      EnablePerformanceInsights: true
+      PerformanceInsightsRetentionPeriod: 7
+      AutoMinorVersionUpgrade: false
+      Tags:
+        - Key: Name
+          Value: !Sub dcs-node-01
+
+## Deploy a reader node
+  SMBAdbNodeSecondary:
+    Condition: WithInstance
+    Type: AWS::RDS::DBInstance
+    DependsOn: [ SMBAdbNodeWriter ]
+    Properties:
+      DBClusterIdentifier: !Ref SMBAdbCluster
+      DBInstanceIdentifier: !Sub smba-node-02
+      CopyTagsToSnapshot: true
+      DBInstanceClass: !Ref DBInstanceClass
+      DBParameterGroupName: !Ref apgcustomdbparamgroup
+      EngineVersion : !Ref DBEngineVersion
+      Engine: aurora-postgresql
+      MonitoringInterval: 1
+      MonitoringRoleArn: !GetAtt roleEnhancedMonitoring.Arn
+      PubliclyAccessible: false
+      EnablePerformanceInsights: true
+      PerformanceInsightsRetentionPeriod: 7
+      AutoMinorVersionUpgrade: false
+      Tags:
+        - Key: Name
+          Value: !Sub smba-node-02
+    
+  DCSdbNodeSecondary:
+    Condition: WithInstance
+    Type: AWS::RDS::DBInstance
+    DependsOn: [ DCSdbNodeWriter ]
+    Properties:
+      DBClusterIdentifier: !Ref DCSdbCluster
+      DBInstanceIdentifier: !Sub dcs-node-02
+      CopyTagsToSnapshot: true
+      DBInstanceClass: !Ref DBInstanceClass
+      DBParameterGroupName: !Ref apgcustomdbparamgroup
+      EngineVersion : !Ref DBEngineVersion
+      Engine: aurora-postgresql
+      MonitoringInterval: 1
+      MonitoringRoleArn: !GetAtt roleEnhancedMonitoring.Arn
+      PubliclyAccessible: false
+      EnablePerformanceInsights: true
+      PerformanceInsightsRetentionPeriod: 7
+      AutoMinorVersionUpgrade: false
+      Tags:
+        - Key: Name
+          Value: !Sub dcs-node-02
+  
+
+## Outputs
+Outputs:
+  SMBAdbSecGroupCluster:
+    Description: Database Security Group
+    Value: !Ref SMBAdbSecGroupCluster
+  SMBAclusterEndpoint:
+    Description: Aurora Cluster Endpoint
+    Value: !If [WithInstance, !GetAtt SMBAdbCluster.Endpoint.Address, '']
+  SMBAreaderEndpoint:
+    Description: Aurora Reader Endpoint
+    Value: !If [WithInstance, !GetAtt SMBAdbCluster.ReadEndpoint.Address, '']
+  SMBAPort:
+    Description: Aurora Endpoint Port
+    Value: !If [WithInstance, !GetAtt SMBAdbCluster.Endpoint.Port, '']
+  SMBADatabaseName:
+    Description: Database Name
+    Value: !If [WithInstance, !FindInMap [ ClusterSettings, global, smbaSchema ], '']
+  SMBAsecretArn:
+    Description: Database Credentials Secret ARN
+    Value: !Ref SMBADBSecret
+  SMBADBUsername:
+    Description: Database master username
+    Value: !Ref DBMasterUsername
+  SMBDBUserPassword:
+    Description: Database master user password
+    Value: !Join ['', ['{{resolve:secretsmanager:', !Ref SMBADBSecret, ':SecretString:password}}' ]]
+  SMBAapgcustomclusterparamgroup:
+    Description: Cluster Parameter Group
+    Value: !Ref apgcustomclusterparamgroup
+  SMBAapgcustomdbparamgroup:
+    Description: Database Parameter Group
+    Value: !Ref apgcustomdbparamgroup
+  DCSdbSecGroupCluster:
+    Description: Database Security Group
+    Value: !Ref DCSdbSecGroupCluster
+  DCSclusterEndpoint:
+    Description: Aurora Cluster Endpoint
+    Value: !If [WithInstance, !GetAtt DCSdbCluster.Endpoint.Address, '']
+  DCSreaderEndpoint:
+    Description: Aurora Reader Endpoint
+    Value: !If [WithInstance, !GetAtt DCSdbCluster.ReadEndpoint.Address, '']
+  DCSPort:
+    Description: Aurora Endpoint Port
+    Value: !If [WithInstance, !GetAtt DCSdbCluster.Endpoint.Port, '']
+  DCSDatabaseName:
+    Description: Database Name
+    Value: !If [WithInstance, !FindInMap [ ClusterSettings, global, dcsSchema ], '']
+  DCSsecretArn:
+    Description: Database Credentials Secret ARN
+    Value: !Ref DCSDBSecret
+  DCSDBUsername:
+    Description: Database master username
+    Value: !Ref DBMasterUsername
+  DCSDBUserPassword:
+    Description: Database master user password
+    Value: !Join ['', ['{{resolve:secretsmanager:', !Ref DCSDBSecret, ':SecretString:password}}' ]]
+  DCSapgcustomclusterparamgroup:
+    Description: Cluster Parameter Group
+    Value: !Ref apgcustomclusterparamgroup
+  DCSapgcustomdbparamgroup:
+    Description: Database Parameter Group
+    Value: !Ref apgcustomdbparamgroup
