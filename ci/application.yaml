@@ -132,8 +132,8 @@ Resources:
     Type: "AWS::Lambda::Function"
     Properties:
       Description: "ETL Lambda"
-      FunctionName: "ETL Lambda"
-      !GetAtt 'SMBAETLLambdaFunctionRole.Arn'
+      FunctionName: "SMBAETLLambdaFunction"
+      Role: !GetAtt 'SMBAETLLambdaFunctionRole.Arn'
       PackageType: "Zip"
       Runtime: "python3.8"
       Handler: "index.lambda_handler"
