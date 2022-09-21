@@ -108,8 +108,7 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref SMBAETLLambdaFunction
       Principal: s3.amazonaws.com
-      SourceArn:
-      - !Join
+      SourceArn: !Join
         - ''
         - - 'arn:'
           - !Ref AWS::Partition
