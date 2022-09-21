@@ -106,7 +106,8 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref SMBAETLLambdaFunction
+      SourceAccount: !Ref 'AWS::AccountId'
+      FunctionName: !GetAtt SMBAETLLambdaFunction.Arn
       Principal: s3.amazonaws.com
       SourceArn: !Join
         - ''
