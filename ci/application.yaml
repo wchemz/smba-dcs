@@ -74,7 +74,7 @@ Resources:
   SMBASourceS3Bucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Join ["-", [ !Ref AWS::AccountId, !Ref "AWS::Region", "smba-source-bucket"] ]  
+      BucketName: !Join ["-", [ !Ref AWS::AccountId, !Ref "AWS::Region", "smba-source-bucket"] ]
       LoggingConfiguration:
         DestinationBucketName: !Ref SMBAAccessLogS3Bucket
         LogFilePrefix: "source-access"
@@ -90,6 +90,26 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: /
+                  - Name: suffix
+                    Value: .csv
+            Function: !GetAtt SMBAETLLambdaFunction.Arn
+
+  S3InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SMBAETLLambdaFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Ref SMBASourceS3Bucket
+
   SMBATargetS3Bucket:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -109,6 +129,7 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+  
   SMBAAccessLogS3Bucket:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -220,12 +241,26 @@ Resources:
                 Action:
                   - s3:GetObject
                 Resource:
-                  - !Sub arn:${AWS::Partition}:s3:::${SMBASourceS3Bucket}/*
+                  - !Join
+                    - ''
+                    - - 'arn:'
+                      - !Ref AWS::Partition
+                      - ':s3:::'
+                      - !Ref AWS::AccountId
+                      - !Ref AWS::Region
+                      - 'smba-tarket-bucket/*'
               - Effect: "Allow"
                 Action:
                   - s3:PutObject
                 Resource:
-                  - !Sub arn:${AWS::Partition}:s3:::${SMBATargetS3Bucket}/*
+                  - !Join
+                    - ''
+                    - - 'arn:'
+                      - !Ref AWS::Partition
+                      - ':s3:::'
+                      - !Ref AWS::AccountId
+                      - !Ref AWS::Region
+                      - 'smba-tarket-bucket/*'
         - PolicyName: SMBAETLLambdaFunctionRole-SSM
           PolicyDocument:
             Version: '2012-10-17'
