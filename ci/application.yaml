@@ -109,14 +109,6 @@ Resources:
       SourceAccount: !Ref 'AWS::AccountId'
       FunctionName: !GetAtt SMBAETLLambdaFunction.Arn
       Principal: s3.amazonaws.com
-      SourceArn: !Join
-        - ''
-        - - 'arn:'
-          - !Ref AWS::Partition
-          - ':s3:::'
-          - !Ref AWS::AccountId
-          - !Ref AWS::Region
-          - 'smba-source-bucket/*'
 
   SMBATargetS3Bucket:
     Type: "AWS::S3::Bucket"
