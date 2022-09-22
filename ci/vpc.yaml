@@ -6,6 +6,12 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "smba-dcs VPC nested stack template"
 
+Parameters:
+  TemplateName:
+    Type: String
+    Description: Name used for different elements created.
+    Default: 'smba-dcs-vpc'
+
 Resources:
   VPC:
     Type: "AWS::EC2::VPC"
@@ -76,8 +82,6 @@ Resources:
           - "1"
           - Fn::GetAZs:
               Ref: "AWS::Region"
-
-
 
   PrivateSubnet5:
     Type: "AWS::EC2::Subnet"
@@ -263,7 +267,8 @@ Resources:
       LogDestinationType: "cloud-watch-logs"
       LogGroupName: !Ref LogGroup
       DeliverLogsPermissionArn: !GetAtt 'CloudWatchVPCRole.Arn'
-  VPCEndpoint:
+  
+  KMSVPCEndpoint:
     Type: "AWS::EC2::VPCEndpoint"
     Properties:
       VpcEndpointType: "Interface"
@@ -276,15 +281,45 @@ Resources:
             - ".kms"
       VpcId:
         Ref: "VPC"
-      PrivateDnsEnabled: true
       SecurityGroupIds:
-        - Ref: "SgForVPCEndpoint"
-  SgForVPCEndpoint:
+        - Ref: "SgForKMSVPCEndpoint"
+
+  SESVPCEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      VpcEndpointType: "Interface"
+      ServiceName:
+        Fn::Join:
+          - ""
+          -
+            - "com.amazonaws."
+            - Ref: "AWS::Region"
+            - ".email-smtp"
+      VpcId:
+        Ref: "VPC"
+      SecurityGroupIds:
+        - Ref: "SgForSESVPCEndpoint"
+
+  S3Endpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      VpcEndpointType: "Gateway"
+      ServiceName:
+        Fn::Join:
+          - ""
+          -
+            - "com.amazonaws."
+            - Ref: "AWS::Region"
+            - ".s3"
+      VpcId:
+        Ref: "VPC"
+
+  SgForKMSVPCEndpoint:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: "Security group to allow access to kms VPC Endpoint"
       SecurityGroupIngress:
-        - CidrIp: "0.0.0.0/0"
+        - CidrIp: !GetAtt VPC.CidrBlock
           IpProtocol: "tcp"
           FromPort: "443"
           ToPort: "443"
@@ -294,6 +329,40 @@ Resources:
       VpcId:
         Ref: "VPC"
   
+<<<<<<< HEAD
+  SgForSESVPCEndpoint:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Security group to allow access to SES VPC Endpoint"
+      SecurityGroupIngress:
+        - CidrIp: !GetAtt VPC.CidrBlock
+          IpProtocol: "tcp"
+          FromPort: "25"
+          ToPort: "25"
+        - CidrIp: !GetAtt VPC.CidrBlock
+          IpProtocol: "tcp"
+          FromPort: "465"
+          ToPort: "465"
+        - CidrIp: !GetAtt VPC.CidrBlock
+          IpProtocol: "tcp"
+          FromPort: "587"
+          ToPort: "587"
+        - CidrIp: !GetAtt VPC.CidrBlock
+          IpProtocol: "tcp"
+          FromPort: "2465"
+          ToPort: "2465"
+        - CidrIp: !GetAtt VPC.CidrBlock
+          IpProtocol: "tcp"
+          FromPort: "2587"
+          ToPort: "2587"
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      VpcId:
+        Ref: "VPC"
+
+=======
+>>>>>>> main
   SMBAlambdaSG:
     Type: AWS::EC2::SecurityGroup
     Properties: 
@@ -332,6 +401,47 @@ Resources:
       GroupId: !Ref DCSlambdaSG
       IpProtocol: "-1"
 
+<<<<<<< HEAD
+=======
 Parameters: {}
+>>>>>>> main
 Metadata: {}
 Conditions: {}
+
+Outputs:
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+  VPCCidr:
+    Description: VPC CIDR
+    Value: !GetAtt VPC.CidrBlock
+  SMBADbSubnet1:
+    Description: SMBA Db Subnet 1
+    Value: !Ref PrivateSubnet3
+  SMBADbSubnet2:
+    Description: SMBA Db Subnet 2
+    Value: !Ref PrivateSubnet4
+  DCSDbSubnet1:
+    Description: DCS Db Subnet 1
+    Value: !Ref PrivateSubnet7
+  DCSDbSubnet2:
+    Description: DCS Db Subnet 1
+    Value: !Ref PrivateSubnet8
+  SMBAlambdaSG:
+    Description: SMBA lambda SG
+    Value: !Ref SMBAlambdaSG
+  DCSlambdaSG:
+    Description: DCS lambda SG
+    Value: !Ref DCSlambdaSG
+  SMBALambdaSubnet1:
+    Description: SMBA Lambda Subnet 1
+    Value: !Ref PrivateSubnet1
+  SMBALambdaSubnet2:
+    Description: SMBA Lambda Subnet 2
+    Value: !Ref PrivateSubnet2
+  DCSLambdaSubnet1:
+    Description: DCS Lambda Subnet 1
+    Value: !Ref PrivateSubnet5
+  DCSLambdaSubnet2:
+    Description: DCS Lambda Subnet 1
+    Value: !Ref PrivateSubnet6
