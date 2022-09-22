@@ -74,7 +74,7 @@ Resources:
             Effect: Allow
             Principal:
               Service:
-                - s3.us-east-1.amazonaws.com
+                - s3.amazonaws.com
             Action:
               - "kms:Encrypt"
               - "kms:Decrypt"
