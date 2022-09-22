@@ -32,6 +32,24 @@ Parameters:
   DCSlambdaSG:
     Type: String
     Description: DCS lambda SG
+  SMBAclusterEndpoint:
+    Type: String
+    Description: SMBA Aurora cluster endpoint
+  SMBADatabaseName:
+    Type: String
+    Description: SMBA Aurora cluster database name
+  SMBAsecretArn:
+    Type: String
+    Description: SMBA Aurora cluster database secret manager arn
+  DCSclusterEndpoint:
+    Type: String
+    Description: DCS Aurora cluster endpoint
+  DCSDatabaseName:
+    Type: String
+    Description: DCS Aurora cluster database name
+  DCSsecretArn:
+    Type: String
+    Description: DCS Aurora cluster database secret manager arn
 
 Resources:
   # KMS S3 encryption key
@@ -85,7 +103,6 @@ Resources:
               SSEAlgorithm: "aws:kms"
               KMSMasterKeyID:
                 Ref: "S3KMSKey"
-
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -94,13 +111,6 @@ Resources:
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: 's3:ObjectCreated:*'
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: /
-                  - Name: suffix
-                    Value: .csv
             Function: !GetAtt SMBAETLLambdaFunction.Arn
 
   S3InvokeLambdaPermission:
@@ -189,6 +199,99 @@ Resources:
         SubnetIds:
           - !Ref SMBALambdaSubnet1
           - !Ref SMBALambdaSubnet2
+      Code:
+        ZipFile: |
+          import os
+          from os import walk
+          import base64
+          import math
+
+          def lambda_handler(event, context):
+              # get operation type
+              try:
+                  operation_type = event['operation']
+              except KeyError:
+                  raise Exception('Missing required parameter in event: "operation"')
+
+  DCSEmailCreateLambdaFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "DCS Email Create Lambda Function"
+      FunctionName: "DCSEmailCreateLambdaFunction"
+      Role: !GetAtt 'DCSLambdaFunctionRole.Arn'
+      PackageType: "Zip"
+      Runtime: "python3.8"
+      Handler: "index.lambda_handler"
+      MemorySize: 128
+      Timeout: 120
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DCSlambdaSG
+        SubnetIds:
+          - !Ref DCSLambdaSubnet1
+          - !Ref DCSLambdaSubnet2
+      Code:
+        ZipFile: |
+          import os
+          from os import walk
+          import base64
+          import math
+
+          def lambda_handler(event, context):
+              # get operation type
+              try:
+                  operation_type = event['operation']
+              except KeyError:
+                  raise Exception('Missing required parameter in event: "operation"')
+  
+  DCSEmailConsumerLambdaFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "DCS Email Consumer Lambda Function"
+      FunctionName: "DCSEmailConsumerLambdaFunction"
+      Role: !GetAtt 'DCSLambdaFunctionRole.Arn'
+      PackageType: "Zip"
+      Runtime: "python3.8"
+      Handler: "index.lambda_handler"
+      MemorySize: 128
+      Timeout: 120
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DCSlambdaSG
+        SubnetIds:
+          - !Ref DCSLambdaSubnet1
+          - !Ref DCSLambdaSubnet2
+      Code:
+        ZipFile: |
+          import os
+          from os import walk
+          import base64
+          import math
+
+          def lambda_handler(event, context):
+              # get operation type
+              try:
+                  operation_type = event['operation']
+              except KeyError:
+                  raise Exception('Missing required parameter in event: "operation"')
+  
+  DCSEmailBounceLambdaFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "DCS Email Bounce Lambda Function"
+      FunctionName: "DCSEmailBounceLambdaFunction"
+      Role: !GetAtt 'DCSLambdaFunctionRole.Arn'
+      PackageType: "Zip"
+      Runtime: "python3.8"
+      Handler: "index.lambda_handler"
+      MemorySize: 128
+      Timeout: 120
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref DCSlambdaSG
+        SubnetIds:
+          - !Ref DCSLambdaSubnet1
+          - !Ref DCSLambdaSubnet2
       Code:
         ZipFile: |
           import os
@@ -315,5 +418,97 @@ Resources:
                   - ec2:DescribeInstances
                   - ec2:AttachNetworkInterface
                 Resource: "*"
+
+  DCSLambdaFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: DCSLambdaFunctionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: DCSLambdaFunctionRole-Logs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+              - Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                Resource: '*'
+        - PolicyName: SMBAETLLambdaFunctionRole-SSM
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:PutParameter
+                  - ssm:GetParameter
+                  - ssm:DeleteParameter
+                  - ssm:GetParametersByPath
+                Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+              - Effect: Allow
+                Action:
+                  - ssm:DescribeParameters
+                Resource: '*' # The APIs above only support '*' resource.
+        - PolicyName: SMBAETLLambdaFunctionRole-VPC
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeInstances
+                  - ec2:AttachNetworkInterface
+                Resource: "*"
+#Todo
+#Add secret manager access
+
+  SNSEmailResponseTopic:
+    Type: AWS::SNS::Topic
+    Properties: 
+      DisplayName: SNS Email Response Topic
+      FifoTopic: false
+      Tags:
+        - Key: Name
+          Value: SNSEmailResponseTopic
+  
+  SNSEmailResponseTopicLambdaSubscription:
+    Type: AWS::SNS::Subscription
+    Properties: 
+      Endpoint: !GetAtt 'DCSEmailConsumerLambdaFunction.Arn'
+      Protocol: lambda
+      TopicArn: !Ref SNSEmailResponseTopic
+  
+  SNSEmailBounceTopic:
+    Type: AWS::SNS::Topic
+    Properties: 
+      DisplayName: SNS Email Bounce Topic
+      FifoTopic: false
+      Tags:
+        - Key: Name
+          Value: SNSEmailBounceTopic
+  
+  SNSEmailBounceTopicLambdaSubscription:
+    Type: AWS::SNS::Subscription
+    Properties: 
+      Endpoint: !GetAtt 'DCSEmailBounceLambdaFunction.Arn'
+      Protocol: lambda
+      TopicArn: !Ref SNSEmailBounceTopic
+
 Metadata: {}
 Conditions: {}
