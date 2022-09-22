@@ -120,6 +120,7 @@ Resources:
       SourceAccount: !Ref 'AWS::AccountId'
       FunctionName: !GetAtt SMBAETLLambdaFunction.Arn
       Principal: s3.amazonaws.com
+      SourceArn: !GetAtt 'SMBASourceS3Bucket.Arn'
 
   SMBATargetS3Bucket:
     Type: "AWS::S3::Bucket"
@@ -509,6 +510,27 @@ Resources:
       Endpoint: !GetAtt 'DCSEmailBounceLambdaFunction.Arn'
       Protocol: lambda
       TopicArn: !Ref SNSEmailBounceTopic
+  
+  EmailCreateScheduledRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Name: "EmailCreateScheduledRule"
+      Description: "EmailCreateScheduledRule"
+      ScheduleExpression: "cron(0 12 * * ? *)"
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: !GetAtt 'DCSEmailCreateLambdaFunction.Arn'
+          Id: "DCSEmailCreateLambdaFunction"
+
+  PermissionForEventsToInvokeLambda: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: !Ref "DCSEmailCreateLambdaFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceAccount: !Ref 'AWS::AccountId'
+      SourceArn: !GetAtt 'EmailCreateScheduledRule.Arn'
 
 Metadata: {}
 Conditions: {}

@@ -1,3 +1,76 @@
 ---
 ## SMBA and DCS Parent stack
 ## Add nested stack of vpc, application and database.
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "smba-dcs parent stack"
+
+## Resources
+Resources:
+  vpcStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cloudformation-templates-us-east-2/EC2ChooseAMI.template
+    Parameters:
+      TemplateName:
+        Type: String
+        Description: Name used for different elements created.
+        Default: 'smba-dcs-vpc'
+
+  databaseStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cloudformation-templates-us-east-2/EC2ChooseAMI.template
+    Parameters:
+      CreateInstance:
+        Type: String
+        Default: "true"
+        AllowedValues:
+          - "true"
+          - "false"
+        Description: Determines if Aurora PostgreSQL Cluster needs to be created.
+      TemplateName:
+        Type: String
+        Description: Name used for different elements created.
+        Default: 'database'
+      SMBAlambdaSG:
+        Type: String
+        Description: SMBA lambda SG
+      DCSlambdaSG:
+        Type: String
+        Description: DCS lambda SG
+      SMBADbSubnet1:
+        Type: String
+        Description: SMBA Db Subnet 1
+      SMBADbSubnet2:
+        Type: String
+        Description: SMBA Db Subnet 2
+      DCSDbSubnet1:
+        Type: String
+        Description: DCS Db Subnet 1
+      DCSDbSubnet2:
+        Type: String
+        Description: DCS Db Subnet 1
+      MainVPC:
+        Type: AWS::EC2::VPC::Id
+        Description: Main VPC id
+      DBInstanceClass:
+        Description: 'The instance type of database server.'
+        Type: String
+        Default: 'db.r6g.xlarge'
+      DBMasterUsername:
+        Description: 'The master user name for the DB instance'
+        Type: String
+        Default: masteruser
+      DBEngineVersion:
+        Description: Select Database Engine Version
+        Type: String
+        Default: 13.6
+        AllowedValues:
+          - 13.6
+      
+  
+  applicationStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cloudformation-templates-us-east-2/EC2ChooseAMI.template
