@@ -329,6 +329,7 @@ Resources:
       VpcId:
         Ref: "VPC"
   
+<<<<<<< HEAD
   SgForSESVPCEndpoint:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
@@ -360,6 +361,8 @@ Resources:
       VpcId:
         Ref: "VPC"
 
+=======
+>>>>>>> main
   SMBAlambdaSG:
     Type: AWS::EC2::SecurityGroup
     Properties: 
@@ -398,6 +401,10 @@ Resources:
       GroupId: !Ref DCSlambdaSG
       IpProtocol: "-1"
 
+<<<<<<< HEAD
+=======
+Parameters: {}
+>>>>>>> main
 Metadata: {}
 Conditions: {}
 
