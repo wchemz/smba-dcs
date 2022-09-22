@@ -208,11 +208,10 @@ Resources:
           import math
 
           def lambda_handler(event, context):
-              # get operation type
-              try:
-                  operation_type = event['operation']
-              except KeyError:
-                  raise Exception('Missing required parameter in event: "operation"')
+              print('## ENVIRONMENT VARIABLES')
+              print(os.environ)
+              print('## EVENT')
+              print(event)
 
   DCSEmailCreateLambdaFunction:
     Type: "AWS::Lambda::Function"
@@ -239,11 +238,10 @@ Resources:
           import math
 
           def lambda_handler(event, context):
-              # get operation type
-              try:
-                  operation_type = event['operation']
-              except KeyError:
-                  raise Exception('Missing required parameter in event: "operation"')
+              print('## ENVIRONMENT VARIABLES')
+              print(os.environ)
+              print('## EVENT')
+              print(event)
   
   DCSEmailConsumerLambdaFunction:
     Type: "AWS::Lambda::Function"
@@ -270,11 +268,10 @@ Resources:
           import math
 
           def lambda_handler(event, context):
-              # get operation type
-              try:
-                  operation_type = event['operation']
-              except KeyError:
-                  raise Exception('Missing required parameter in event: "operation"')
+              print('## ENVIRONMENT VARIABLES')
+              print(os.environ)
+              print('## EVENT')
+              print(event)
   
   DCSEmailBounceLambdaFunction:
     Type: "AWS::Lambda::Function"
@@ -516,7 +513,7 @@ Resources:
     Properties: 
       Name: "EmailCreateScheduledRule"
       Description: "EmailCreateScheduledRule"
-      ScheduleExpression: "cron(0 12 * * ? *)"
+      ScheduleExpression: "cron(0 0/1 * * ? *)"
       State: "ENABLED"
       Targets: 
         - 

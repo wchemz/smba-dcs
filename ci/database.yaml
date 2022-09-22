@@ -3,7 +3,7 @@
 ##
 
 AWSTemplateFormatVersion: 2010-09-09
-Description: Amazon Aurora PostgreSQL Aurora stack
+Description: "smba-dcs database stack template"
 
 ## Parameters
 Parameters:

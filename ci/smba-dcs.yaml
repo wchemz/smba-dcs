@@ -5,72 +5,94 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "smba-dcs parent stack"
 
+Parameters:
+  TemplateName:
+    Type: String
+    Description: Name used for different elements created.
+    Default: 'smba-dcs-parent'
+  
+  pDBInstanceClass:
+    Description: 'The instance type of database server.'
+    Type: String
+    Default: 'db.r6g.xlarge'
+  
+  pDBMasterUsername:
+    Description: 'The master user name for the DB instance'
+    Type: String
+    Default: masteruser
+  
+  pDBEngineVersion:
+    Description: Select Database Engine Version
+    Type: String
+    Default: 13.6
+    AllowedValues:
+      - 13.6
+
 ## Resources
 Resources:
   vpcStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/cloudformation-templates-us-east-2/EC2ChooseAMI.template
-    Parameters:
-      TemplateName:
-        Type: String
-        Description: Name used for different elements created.
-        Default: 'smba-dcs-vpc'
+      TemplateURL: https://smba-dcs-cloudformation.s3.amazonaws.com/vpc.yaml
+      Parameters:
+        TemplateName: 'smba-dcs-vpc'
 
   databaseStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/cloudformation-templates-us-east-2/EC2ChooseAMI.template
-    Parameters:
-      CreateInstance:
-        Type: String
-        Default: "true"
-        AllowedValues:
-          - "true"
-          - "false"
-        Description: Determines if Aurora PostgreSQL Cluster needs to be created.
-      TemplateName:
-        Type: String
-        Description: Name used for different elements created.
-        Default: 'database'
-      SMBAlambdaSG:
-        Type: String
-        Description: SMBA lambda SG
-      DCSlambdaSG:
-        Type: String
-        Description: DCS lambda SG
-      SMBADbSubnet1:
-        Type: String
-        Description: SMBA Db Subnet 1
-      SMBADbSubnet2:
-        Type: String
-        Description: SMBA Db Subnet 2
-      DCSDbSubnet1:
-        Type: String
-        Description: DCS Db Subnet 1
-      DCSDbSubnet2:
-        Type: String
-        Description: DCS Db Subnet 1
-      MainVPC:
-        Type: AWS::EC2::VPC::Id
-        Description: Main VPC id
-      DBInstanceClass:
-        Description: 'The instance type of database server.'
-        Type: String
-        Default: 'db.r6g.xlarge'
-      DBMasterUsername:
-        Description: 'The master user name for the DB instance'
-        Type: String
-        Default: masteruser
-      DBEngineVersion:
-        Description: Select Database Engine Version
-        Type: String
-        Default: 13.6
-        AllowedValues:
-          - 13.6
+      TemplateURL: https://smba-dcs-cloudformation.s3.amazonaws.com/database.yaml
+      Parameters:
+        TemplateName: 'database'
+        
+        CreateInstance: "true"
+
+        SMBAlambdaSG: !GetAtt 'vpcStack.Outputs.SMBAlambdaSG'
+
+        DCSlambdaSG: !GetAtt 'vpcStack.Outputs.DCSlambdaSG'
+
+        SMBADbSubnet1: !GetAtt 'vpcStack.Outputs.SMBADbSubnet1'
+
+        SMBADbSubnet2: !GetAtt 'vpcStack.Outputs.SMBADbSubnet2'
+
+        DCSDbSubnet1: !GetAtt 'vpcStack.Outputs.DCSDbSubnet1'
+
+        DCSDbSubnet2: !GetAtt 'vpcStack.Outputs.DCSDbSubnet2'
+
+        MainVPC: !GetAtt 'vpcStack.Outputs.VPCId'
+
+        DBInstanceClass: !Ref pDBInstanceClass
+
+        DBMasterUsername: !Ref pDBMasterUsername
+
+        DBEngineVersion: !Ref pDBEngineVersion
       
-  
   applicationStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/cloudformation-templates-us-east-2/EC2ChooseAMI.template
+      TemplateURL: https://smba-dcs-cloudformation.s3.amazonaws.com/application.yaml
+      Parameters:
+        SMBALambdaSubnet1: !GetAtt 'vpcStack.Outputs.SMBALambdaSubnet1'
+  
+        SMBALambdaSubnet2: !GetAtt 'vpcStack.Outputs.SMBALambdaSubnet2'
+
+        DCSLambdaSubnet1: !GetAtt 'vpcStack.Outputs.DCSLambdaSubnet1'
+
+        DCSLambdaSubnet2: !GetAtt 'vpcStack.Outputs.DCSLambdaSubnet2'
+
+        MainVPC: !GetAtt 'vpcStack.Outputs.VPCId'
+
+        SMBAlambdaSG: !GetAtt 'vpcStack.Outputs.SMBAlambdaSG'
+
+        DCSlambdaSG: !GetAtt 'vpcStack.Outputs.DCSlambdaSG'
+
+        SMBAclusterEndpoint: !GetAtt 'databaseStack.Outputs.SMBAclusterEndpoint'
+
+        SMBADatabaseName: !GetAtt 'databaseStack.Outputs.SMBADatabaseName'
+
+        SMBAsecretArn: !GetAtt 'databaseStack.Outputs.SMBAsecretArn'
+
+        DCSclusterEndpoint: !GetAtt 'databaseStack.Outputs.DCSclusterEndpoint'
+
+        DCSDatabaseName: !GetAtt 'databaseStack.Outputs.DCSDatabaseName'
+
+        DCSsecretArn: !GetAtt 'databaseStack.Outputs.DCSsecretArn'
