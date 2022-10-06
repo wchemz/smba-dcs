@@ -300,6 +300,22 @@ Resources:
       SecurityGroupIds:
         - Ref: "SgForSESVPCEndpoint"
 
+  SecretsManagerVPCEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      VpcEndpointType: "Interface"
+      ServiceName:
+        Fn::Join:
+          - ""
+          -
+            - "com.amazonaws."
+            - Ref: "AWS::Region"
+            - ".secretsmanager"
+      VpcId:
+        Ref: "VPC"
+      SecurityGroupIds:
+        - Ref: "SgForSecretsManagerVPCEndpoint"
+
   S3Endpoint:
     Type: "AWS::EC2::VPCEndpoint"
     Properties:
@@ -329,6 +345,21 @@ Resources:
       VpcId:
         Ref: "VPC"
   
+  SgForSecretsManagerVPCEndpoint:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Security group to allow access to SecretsManager VPC Endpoint"
+      SecurityGroupIngress:
+        - CidrIp: !GetAtt VPC.CidrBlock
+          IpProtocol: "tcp"
+          FromPort: "443"
+          ToPort: "443"
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+      VpcId:
+        Ref: "VPC"
+
   SgForSESVPCEndpoint:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
