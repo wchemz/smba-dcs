@@ -245,6 +245,8 @@ Resources:
           - !Ref DCSLambdaSubnet2
       Environment:
         Variables:
+          SMBAclusterEndpoint: !Ref SMBAclusterEndpoint
+          SMBAsecretArn: !Ref SMBAsecretArn
           DCSclusterEndpoint: !Ref DCSclusterEndpoint
           DCSsecretArn: !Ref DCSsecretArn
       Code:
