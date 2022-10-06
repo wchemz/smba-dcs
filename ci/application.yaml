@@ -209,6 +209,10 @@ Resources:
         SubnetIds:
           - !Ref SMBALambdaSubnet1
           - !Ref SMBALambdaSubnet2
+      Environment:
+        Variables:
+          SMBAclusterEndpoint: !Ref SMBAclusterEndpoint
+          SMBAsecretArn: !Ref SMBAsecretArn
       Code:
         ZipFile: |
           import os
@@ -239,6 +243,10 @@ Resources:
         SubnetIds:
           - !Ref DCSLambdaSubnet1
           - !Ref DCSLambdaSubnet2
+      Environment:
+        Variables:
+          DCSclusterEndpoint: !Ref DCSclusterEndpoint
+          DCSsecretArn: !Ref DCSsecretArn
       Code:
         ZipFile: |
           import os
@@ -269,6 +277,10 @@ Resources:
         SubnetIds:
           - !Ref DCSLambdaSubnet1
           - !Ref DCSLambdaSubnet2
+      Environment:
+        Variables:
+          DCSclusterEndpoint: !Ref DCSclusterEndpoint
+          DCSsecretArn: !Ref DCSsecretArn
       Code:
         ZipFile: |
           import os
@@ -299,6 +311,10 @@ Resources:
         SubnetIds:
           - !Ref DCSLambdaSubnet1
           - !Ref DCSLambdaSubnet2
+      Environment:
+        Variables:
+          DCSclusterEndpoint: !Ref DCSclusterEndpoint
+          DCSsecretArn: !Ref DCSsecretArn
       Code:
         ZipFile: |
           import os
