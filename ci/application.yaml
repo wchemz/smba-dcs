@@ -564,7 +564,7 @@ Resources:
                   - ec2:DescribeInstances
                   - ec2:AttachNetworkInterface
                 Resource: "*"
-      - PolicyName: DCSLambdaFunctionRole-Secrets
+        - PolicyName: DCSLambdaFunctionRole-Secrets
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
