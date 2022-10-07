@@ -371,6 +371,7 @@ Resources:
       VpcId:
         Ref: "VPC"
 
+
   SgForSESVPCEndpoint:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
