@@ -284,8 +284,6 @@ Resources:
       SubnetIds: 
         - !Ref PrivateSubnet1
         - !Ref PrivateSubnet2
-        - !Ref PrivateSubnet5
-        - !Ref PrivateSubnet6
       SecurityGroupIds:
         - Ref: "SgForKMSVPCEndpoint"
 
@@ -326,8 +324,6 @@ Resources:
       SubnetIds: 
         - !Ref PrivateSubnet1
         - !Ref PrivateSubnet2
-        - !Ref PrivateSubnet5
-        - !Ref PrivateSubnet6
       SecurityGroupIds:
         - Ref: "SgForSecretsManagerVPCEndpoint"
 

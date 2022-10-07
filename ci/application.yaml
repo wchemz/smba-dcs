@@ -491,6 +491,22 @@ Resources:
                   - ec2:DescribeInstances
                   - ec2:AttachNetworkInterface
                 Resource: "*"
+        - PolicyName: SMBAETLLambdaFunctionRole-Secrets
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:ListSecrets
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetResourcePolicy
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:ListSecretVersionIds
+                Resource:
+                  - !Ref SMBAsecretArn
 
   DCSLambdaFunctionRole:
     Type: AWS::IAM::Role
@@ -521,7 +537,7 @@ Resources:
                   - xray:PutTraceSegments
                   - xray:PutTelemetryRecords
                 Resource: '*'
-        - PolicyName: SMBAETLLambdaFunctionRole-SSM
+        - PolicyName: DCSLambdaFunctionRole-SSM
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -536,7 +552,7 @@ Resources:
                 Action:
                   - ssm:DescribeParameters
                 Resource: '*' # The APIs above only support '*' resource.
-        - PolicyName: SMBAETLLambdaFunctionRole-VPC
+        - PolicyName: DCSLambdaFunctionRole-VPC
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -548,6 +564,22 @@ Resources:
                   - ec2:DescribeInstances
                   - ec2:AttachNetworkInterface
                 Resource: "*"
+      - PolicyName: DCSLambdaFunctionRole-Secrets
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:ListSecrets
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetResourcePolicy
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:ListSecretVersionIds
+                Resource:
+                  - !Ref DCSsecretArn
 #Todo
 #Add secret manager access
 
