@@ -1,16 +1,16 @@
 ---
-## SMBA and DCS VPC stack
+## DCS VPC stack phase 2
 ## VPC Stack which VPC, subnet, security groups
 ##
 
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "smba-dcs VPC nested stack template"
+Description: "DCS VPC nested stack template"
 
 Parameters:
   TemplateName:
     Type: String
     Description: Name used for different elements created.
-    Default: 'smba-dcs-vpc'
+    Default: 'dcs-vpc'
 
 Resources:
   VPC:
@@ -21,67 +21,67 @@ Resources:
       EnableDnsSupport: true
       Tags:
         - Key: "Name"
-          Value: "SMBA-DCS-VPC"
-  PrivateSubnet1:
-    Type: "AWS::EC2::Subnet"
-    Properties:
-      CidrBlock: "10.0.0.0/24"
-      MapPublicIpOnLaunch: false
-      VpcId:
-        Ref: "VPC"
-      Tags:
-        - Key: "Name"
-          Value: "SMBA Application Private Subnet 1"
-      AvailabilityZone:
-        Fn::Select:
-          - "0"
-          - Fn::GetAZs:
-              Ref: "AWS::Region"
-  PrivateSubnet2:
-    Type: "AWS::EC2::Subnet"
-    Properties:
-      CidrBlock: "10.0.1.0/24"
-      MapPublicIpOnLaunch: false
-      VpcId:
-        Ref: "VPC"
-      Tags:
-        - Key: "Name"
-          Value: "SMBA Application Private Subnet 2"
-      AvailabilityZone:
-        Fn::Select:
-          - "1"
-          - Fn::GetAZs:
-              Ref: "AWS::Region"
-  PrivateSubnet3:
-    Type: "AWS::EC2::Subnet"
-    Properties:
-      CidrBlock: "10.0.2.0/24"
-      MapPublicIpOnLaunch: false
-      VpcId:
-        Ref: "VPC"
-      Tags:
-        - Key: "Name"
-          Value: "SMBA Database Private Subnet 1"
-      AvailabilityZone:
-        Fn::Select:
-          - "0"
-          - Fn::GetAZs:
-              Ref: "AWS::Region"
-  PrivateSubnet4:
-    Type: "AWS::EC2::Subnet"
-    Properties:
-      CidrBlock: "10.0.3.0/24"
-      MapPublicIpOnLaunch: false
-      VpcId:
-        Ref: "VPC"
-      Tags:
-        - Key: "Name"
-          Value: "SMBA Database Private Subnet 2"
-      AvailabilityZone:
-        Fn::Select:
-          - "1"
-          - Fn::GetAZs:
-              Ref: "AWS::Region"
+          Value: "DCS-VPC"
+  # PrivateSubnet1:
+  #   Type: "AWS::EC2::Subnet"
+  #   Properties:
+  #     CidrBlock: "10.0.0.0/24"
+  #     MapPublicIpOnLaunch: false
+  #     VpcId:
+  #       Ref: "VPC"
+  #     Tags:
+  #       - Key: "Name"
+  #         Value: "SMBA Application Private Subnet 1"
+  #     AvailabilityZone:
+  #       Fn::Select:
+  #         - "0"
+  #         - Fn::GetAZs:
+  #             Ref: "AWS::Region"
+  # PrivateSubnet2:
+  #   Type: "AWS::EC2::Subnet"
+  #   Properties:
+  #     CidrBlock: "10.0.1.0/24"
+  #     MapPublicIpOnLaunch: false
+  #     VpcId:
+  #       Ref: "VPC"
+  #     Tags:
+  #       - Key: "Name"
+  #         Value: "SMBA Application Private Subnet 2"
+  #     AvailabilityZone:
+  #       Fn::Select:
+  #         - "1"
+  #         - Fn::GetAZs:
+  #             Ref: "AWS::Region"
+  # PrivateSubnet3:
+  #   Type: "AWS::EC2::Subnet"
+  #   Properties:
+  #     CidrBlock: "10.0.2.0/24"
+  #     MapPublicIpOnLaunch: false
+  #     VpcId:
+  #       Ref: "VPC"
+  #     Tags:
+  #       - Key: "Name"
+  #         Value: "SMBA Database Private Subnet 1"
+  #     AvailabilityZone:
+  #       Fn::Select:
+  #         - "0"
+  #         - Fn::GetAZs:
+  #             Ref: "AWS::Region"
+  # PrivateSubnet4:
+  #   Type: "AWS::EC2::Subnet"
+  #   Properties:
+  #     CidrBlock: "10.0.3.0/24"
+  #     MapPublicIpOnLaunch: false
+  #     VpcId:
+  #       Ref: "VPC"
+  #     Tags:
+  #       - Key: "Name"
+  #         Value: "SMBA Database Private Subnet 2"
+  #     AvailabilityZone:
+  #       Fn::Select:
+  #         - "1"
+  #         - Fn::GetAZs:
+  #             Ref: "AWS::Region"
   PrivateSubnet5:
     Type: "AWS::EC2::Subnet"
     Properties:
@@ -142,50 +142,50 @@ Resources:
           - "1"
           - Fn::GetAZs:
               Ref: "AWS::Region"
-  RouteTablePrivate1:
-    Type: "AWS::EC2::RouteTable"
-    Properties:
-      VpcId:
-        Ref: "VPC"
-      Tags:
-        - Key: "Name"
-          Value: "Private Route Table A"
-  RouteTablePrivate1Association1:
-    Type: "AWS::EC2::SubnetRouteTableAssociation"
-    Properties:
-      RouteTableId:
-        Ref: "RouteTablePrivate1"
-      SubnetId:
-        Ref: "PrivateSubnet1"
-  RouteTablePrivate1Association2:
-    Type: "AWS::EC2::SubnetRouteTableAssociation"
-    Properties:
-      RouteTableId:
-        Ref: "RouteTablePrivate1"
-      SubnetId:
-        Ref: "PrivateSubnet2"
-  RouteTablePrivate2:
-    Type: "AWS::EC2::RouteTable"
-    Properties:
-      VpcId:
-        Ref: "VPC"
-      Tags:
-        - Key: "Name"
-          Value: "Private Route Table B"
-  RouteTablePrivate2Association1:
-    Type: "AWS::EC2::SubnetRouteTableAssociation"
-    Properties:
-      RouteTableId:
-        Ref: "RouteTablePrivate2"
-      SubnetId:
-        Ref: "PrivateSubnet3"
-  RouteTablePrivate2Association2:
-    Type: "AWS::EC2::SubnetRouteTableAssociation"
-    Properties:
-      RouteTableId:
-        Ref: "RouteTablePrivate2"
-      SubnetId:
-        Ref: "PrivateSubnet4"
+  # RouteTablePrivate1:
+  #   Type: "AWS::EC2::RouteTable"
+  #   Properties:
+  #     VpcId:
+  #       Ref: "VPC"
+  #     Tags:
+  #       - Key: "Name"
+  #         Value: "Private Route Table A"
+  # RouteTablePrivate1Association1:
+  #   Type: "AWS::EC2::SubnetRouteTableAssociation"
+  #   Properties:
+  #     RouteTableId:
+  #       Ref: "RouteTablePrivate1"
+  #     SubnetId:
+  #       Ref: "PrivateSubnet1"
+  # RouteTablePrivate1Association2:
+  #   Type: "AWS::EC2::SubnetRouteTableAssociation"
+  #   Properties:
+  #     RouteTableId:
+  #       Ref: "RouteTablePrivate1"
+  #     SubnetId:
+  #       Ref: "PrivateSubnet2"
+  # RouteTablePrivate2:
+  #   Type: "AWS::EC2::RouteTable"
+  #   Properties:
+  #     VpcId:
+  #       Ref: "VPC"
+  #     Tags:
+  #       - Key: "Name"
+  #         Value: "Private Route Table B"
+  # RouteTablePrivate2Association1:
+  #   Type: "AWS::EC2::SubnetRouteTableAssociation"
+  #   Properties:
+  #     RouteTableId:
+  #       Ref: "RouteTablePrivate2"
+  #     SubnetId:
+  #       Ref: "PrivateSubnet3"
+  # RouteTablePrivate2Association2:
+  #   Type: "AWS::EC2::SubnetRouteTableAssociation"
+  #   Properties:
+  #     RouteTableId:
+  #       Ref: "RouteTablePrivate2"
+  #     SubnetId:
+  #       Ref: "PrivateSubnet4"
   RouteTablePrivate3:
     Type: "AWS::EC2::RouteTable"
     Properties:
@@ -282,8 +282,8 @@ Resources:
       VpcId:
         Ref: "VPC"
       SubnetIds: 
-        - !Ref PrivateSubnet1
-        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet5
+        - !Ref PrivateSubnet6
       SecurityGroupIds:
         - Ref: "SgForKMSVPCEndpoint"
 
@@ -322,8 +322,8 @@ Resources:
       VpcId:
         Ref: "VPC"
       SubnetIds: 
-        - !Ref PrivateSubnet1
-        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet5
+        - !Ref PrivateSubnet6
       SecurityGroupIds:
         - Ref: "SgForSecretsManagerVPCEndpoint"
 
@@ -403,24 +403,24 @@ Resources:
       VpcId:
         Ref: "VPC"
 
-  SMBAlambdaSG:
-    Type: AWS::EC2::SecurityGroup
-    Properties: 
-      GroupDescription: "Security group for SMBA ETL lambda function"
-      GroupName: SMBA-Lambda-SG
-      Tags:
-        - Key: "Name"
-          Value: "SMBA-Lambda-SG"
-      VpcId:
-          Ref: "VPC"
+  # SMBAlambdaSG:
+  #   Type: AWS::EC2::SecurityGroup
+  #   Properties: 
+  #     GroupDescription: "Security group for SMBA ETL lambda function"
+  #     GroupName: SMBA-Lambda-SG
+  #     Tags:
+  #       - Key: "Name"
+  #         Value: "SMBA-Lambda-SG"
+  #     VpcId:
+  #         Ref: "VPC"
   
-  SMBAlambdaSGEgress:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties: 
-      CidrIp: "0.0.0.0/0"
-      Description: "SMBAlambdaSGEgress Rule"
-      GroupId: !Ref SMBAlambdaSG
-      IpProtocol: "-1"
+  # SMBAlambdaSGEgress:
+  #   Type: AWS::EC2::SecurityGroupEgress
+  #   Properties: 
+  #     CidrIp: "0.0.0.0/0"
+  #     Description: "SMBAlambdaSGEgress Rule"
+  #     GroupId: !Ref SMBAlambdaSG
+  #     IpProtocol: "-1"
 
   DCSlambdaSG:
     Type: AWS::EC2::SecurityGroup
@@ -451,30 +451,30 @@ Outputs:
   VPCCidr:
     Description: VPC CIDR
     Value: !GetAtt VPC.CidrBlock
-  SMBADbSubnet1:
-    Description: SMBA Db Subnet 1
-    Value: !Ref PrivateSubnet3
-  SMBADbSubnet2:
-    Description: SMBA Db Subnet 2
-    Value: !Ref PrivateSubnet4
+  # SMBADbSubnet1:
+  #   Description: SMBA Db Subnet 1
+  #   Value: !Ref PrivateSubnet3
+  # SMBADbSubnet2:
+  #   Description: SMBA Db Subnet 2
+  #   Value: !Ref PrivateSubnet4
   DCSDbSubnet1:
     Description: DCS Db Subnet 1
     Value: !Ref PrivateSubnet7
   DCSDbSubnet2:
     Description: DCS Db Subnet 1
     Value: !Ref PrivateSubnet8
-  SMBAlambdaSG:
-    Description: SMBA lambda SG
-    Value: !Ref SMBAlambdaSG
+  # SMBAlambdaSG:
+  #   Description: SMBA lambda SG
+  #   Value: !Ref SMBAlambdaSG
   DCSlambdaSG:
     Description: DCS lambda SG
     Value: !Ref DCSlambdaSG
-  SMBALambdaSubnet1:
-    Description: SMBA Lambda Subnet 1
-    Value: !Ref PrivateSubnet1
-  SMBALambdaSubnet2:
-    Description: SMBA Lambda Subnet 2
-    Value: !Ref PrivateSubnet2
+  # SMBALambdaSubnet1:
+  #   Description: SMBA Lambda Subnet 1
+  #   Value: !Ref PrivateSubnet1
+  # SMBALambdaSubnet2:
+  #   Description: SMBA Lambda Subnet 2
+  #   Value: !Ref PrivateSubnet2
   DCSLambdaSubnet1:
     Description: DCS Lambda Subnet 1
     Value: !Ref PrivateSubnet5

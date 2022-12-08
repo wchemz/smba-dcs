@@ -3,13 +3,13 @@
 ## Add nested stack of vpc, application and database.
 
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "smba-dcs parent stack"
+Description: "dcs parent stack"
 
 Parameters:
   TemplateName:
     Type: String
     Description: Name used for different elements created.
-    Default: 'smba-dcs-parent'
+    Default: 'dcs-parent'
   
   pDBInstanceClass:
     Description: 'The instance type of database server.'
@@ -33,26 +33,26 @@ Resources:
   vpcStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://smba-dcs-cloudformation.s3.amazonaws.com/vpc.yaml
+      TemplateURL: https://smba-dcs-cloudformation.s3.amazonaws.com/phase2/vpc.yaml
       Parameters:
-        TemplateName: 'smba-dcs-vpc'
+        TemplateName: 'dcs-vpc'
 
   databaseStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://smba-dcs-cloudformation.s3.amazonaws.com/database.yaml
+      TemplateURL: https://smba-dcs-cloudformation.s3.amazonaws.com/phase2/database.yaml
       Parameters:
         TemplateName: 'database'
         
         CreateInstance: "true"
 
-        SMBAlambdaSG: !GetAtt 'vpcStack.Outputs.SMBAlambdaSG'
+        # SMBAlambdaSG: !GetAtt 'vpcStack.Outputs.SMBAlambdaSG'
 
         DCSlambdaSG: !GetAtt 'vpcStack.Outputs.DCSlambdaSG'
 
-        SMBADbSubnet1: !GetAtt 'vpcStack.Outputs.SMBADbSubnet1'
+        # SMBADbSubnet1: !GetAtt 'vpcStack.Outputs.SMBADbSubnet1'
 
-        SMBADbSubnet2: !GetAtt 'vpcStack.Outputs.SMBADbSubnet2'
+        # SMBADbSubnet2: !GetAtt 'vpcStack.Outputs.SMBADbSubnet2'
 
         DCSDbSubnet1: !GetAtt 'vpcStack.Outputs.DCSDbSubnet1'
 
@@ -69,11 +69,11 @@ Resources:
   applicationStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://smba-dcs-cloudformation.s3.amazonaws.com/application.yaml
+      TemplateURL: https://smba-dcs-cloudformation.s3.amazonaws.com/phase2/application.yaml
       Parameters:
-        SMBALambdaSubnet1: !GetAtt 'vpcStack.Outputs.SMBALambdaSubnet1'
+        # SMBALambdaSubnet1: !GetAtt 'vpcStack.Outputs.SMBALambdaSubnet1'
   
-        SMBALambdaSubnet2: !GetAtt 'vpcStack.Outputs.SMBALambdaSubnet2'
+        # SMBALambdaSubnet2: !GetAtt 'vpcStack.Outputs.SMBALambdaSubnet2'
 
         DCSLambdaSubnet1: !GetAtt 'vpcStack.Outputs.DCSLambdaSubnet1'
 
@@ -81,15 +81,15 @@ Resources:
 
         MainVPC: !GetAtt 'vpcStack.Outputs.VPCId'
 
-        SMBAlambdaSG: !GetAtt 'vpcStack.Outputs.SMBAlambdaSG'
+        # SMBAlambdaSG: !GetAtt 'vpcStack.Outputs.SMBAlambdaSG'
 
         DCSlambdaSG: !GetAtt 'vpcStack.Outputs.DCSlambdaSG'
 
-        SMBAclusterEndpoint: !GetAtt 'databaseStack.Outputs.SMBAclusterEndpoint'
+        # SMBAclusterEndpoint: !GetAtt 'databaseStack.Outputs.SMBAclusterEndpoint'
 
-        SMBADatabaseName: !GetAtt 'databaseStack.Outputs.SMBADatabaseName'
+        # SMBADatabaseName: !GetAtt 'databaseStack.Outputs.SMBADatabaseName'
 
-        SMBAsecretArn: !GetAtt 'databaseStack.Outputs.SMBAsecretArn'
+        # SMBAsecretArn: !GetAtt 'databaseStack.Outputs.SMBAsecretArn'
 
         DCSclusterEndpoint: !GetAtt 'databaseStack.Outputs.DCSclusterEndpoint'
 

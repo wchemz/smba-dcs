@@ -4,19 +4,19 @@
 ##
 
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "smba-dcs application stack template"
+Description: "DCS application stack template"
 
 Parameters:
   TemplateName:
     Type: String
     Description: Name used for different elements created.
     Default: 'application'
-  SMBALambdaSubnet1:
-    Type: String
-    Description: SMBA Lambda Subnet 1
-  SMBALambdaSubnet2:
-    Type: String
-    Description: SMBA Lambda Subnet 2
+  # SMBALambdaSubnet1:
+  #   Type: String
+  #   Description: SMBA Lambda Subnet 1
+  # SMBALambdaSubnet2:
+  #   Type: String
+  #   Description: SMBA Lambda Subnet 2
   DCSLambdaSubnet1:
     Type: String
     Description: DCS Lambda Subnet 1
@@ -26,21 +26,21 @@ Parameters:
   MainVPC:
     Type: AWS::EC2::VPC::Id
     Description: Main VPC id
-  SMBAlambdaSG:
-    Type: String
-    Description: SMBA lambda SG
+  # SMBAlambdaSG:
+  #   Type: String
+  #   Description: SMBA lambda SG
   DCSlambdaSG:
     Type: String
     Description: DCS lambda SG
-  SMBAclusterEndpoint:
-    Type: String
-    Description: SMBA Aurora cluster endpoint
-  SMBADatabaseName:
-    Type: String
-    Description: SMBA Aurora cluster database name
-  SMBAsecretArn:
-    Type: String
-    Description: SMBA Aurora cluster database secret manager arn
+  # SMBAclusterEndpoint:
+  #   Type: String
+  #   Description: SMBA Aurora cluster endpoint
+  # SMBADatabaseName:
+  #   Type: String
+  #   Description: SMBA Aurora cluster database name
+  # SMBAsecretArn:
+  #   Type: String
+  #   Description: SMBA Aurora cluster database secret manager arn
   DCSclusterEndpoint:
     Type: String
     Description: DCS Aurora cluster endpoint
@@ -52,151 +52,234 @@ Parameters:
     Description: DCS Aurora cluster database secret manager arn
 
 Resources:
-  # KMS S3 encryption key
-  S3KMSKey:
-    Type: AWS::KMS::Key
-    Properties:
-      KeyPolicy:
-        Version: 2012-10-17
-        Id: key-s3
-        Statement:
-          - Sid: Enable IAM User Permissions
-            Effect: Allow
-            Principal:
-              AWS: !Join
-                - ''
-                - - 'arn:aws:iam::'
-                  - !Ref 'AWS::AccountId'
-                  - ':root'
-            Action: 'kms:*'
-            Resource: '*'
-          - Sid: Allow S3 to use the Key
-            Effect: Allow
-            Principal:
-              Service:
-                - s3.amazonaws.com
-            Action:
-              - "kms:Encrypt"
-              - "kms:Decrypt"
-              - "kms:ReEncrypt*"
-              - "kms:GenerateDataKey*"
-              - "kms:DescribeKey"
-            Resource: '*'
-  s3KeyAlias:
-    Type: AWS::KMS::Alias
-    Properties:
-      AliasName: alias/SMBA-S3-KEY
-      TargetKeyId:
-        Ref: S3KMSKey
+  # # KMS S3 encryption key
+  # S3KMSKey:
+  #   Type: AWS::KMS::Key
+  #   Properties:
+  #     KeyPolicy:
+  #       Version: 2012-10-17
+  #       Id: key-s3
+  #       Statement:
+  #         - Sid: Enable IAM User Permissions
+  #           Effect: Allow
+  #           Principal:
+  #             AWS: !Join
+  #               - ''
+  #               - - 'arn:aws:iam::'
+  #                 - !Ref 'AWS::AccountId'
+  #                 - ':root'
+  #           Action: 'kms:*'
+  #           Resource: '*'
+  #         - Sid: Allow S3 to use the Key
+  #           Effect: Allow
+  #           Principal:
+  #             Service:
+  #               - s3.amazonaws.com
+  #           Action:
+  #             - "kms:Encrypt"
+  #             - "kms:Decrypt"
+  #             - "kms:ReEncrypt*"
+  #             - "kms:GenerateDataKey*"
+  #             - "kms:DescribeKey"
+  #           Resource: '*'
+  # s3KeyAlias:
+  #   Type: AWS::KMS::Alias
+  #   Properties:
+  #     AliasName: alias/SMBA-S3-KEY
+  #     TargetKeyId:
+  #       Ref: S3KMSKey
 
-  SMBASourceS3Bucket:
-    Type: "AWS::S3::Bucket"
-    Properties:
-      BucketName: !Join ["-", [ !Ref AWS::AccountId, !Ref "AWS::Region", "smba-source-bucket"] ]
-      LoggingConfiguration:
-        DestinationBucketName: !Ref SMBAAccessLogS3Bucket
-        LogFilePrefix: "source-access/"
-      AccessControl: "LogDeliveryWrite"
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: "aws:kms"
-              KMSMasterKeyID:
-                Ref: "S3KMSKey"
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      NotificationConfiguration:
-        LambdaConfigurations:
-          - Event: 's3:ObjectCreated:*'
-            Function: !GetAtt SMBAETLLambdaFunction.Arn
+  # SMBASourceS3Bucket:
+  #   Type: "AWS::S3::Bucket"
+  #   Properties:
+  #     BucketName: !Join ["-", [ !Ref AWS::AccountId, !Ref "AWS::Region", "smba-source-bucket"] ]
+  #     LoggingConfiguration:
+  #       DestinationBucketName: !Ref SMBAAccessLogS3Bucket
+  #       LogFilePrefix: "source-access/"
+  #     AccessControl: "LogDeliveryWrite"
+  #     BucketEncryption:
+  #       ServerSideEncryptionConfiguration:
+  #         - ServerSideEncryptionByDefault:
+  #             SSEAlgorithm: "aws:kms"
+  #             KMSMasterKeyID:
+  #               Ref: "S3KMSKey"
+  #     PublicAccessBlockConfiguration:
+  #       BlockPublicAcls: true
+  #       BlockPublicPolicy: true
+  #       IgnorePublicAcls: true
+  #       RestrictPublicBuckets: true
+  #     NotificationConfiguration:
+  #       LambdaConfigurations:
+  #         - Event: 's3:ObjectCreated:*'
+  #           Function: !GetAtt SMBAETLLambdaFunction.Arn
 
-  S3InvokeLambdaPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      SourceAccount: !Ref 'AWS::AccountId'
-      FunctionName: !GetAtt SMBAETLLambdaFunction.Arn
-      Principal: s3.amazonaws.com
-      SourceArn: !Join
-        - ''
-        - - 'arn:'
-          - !Ref AWS::Partition
-          - ':s3:::'
-          - !Ref AWS::AccountId
-          - '-'
-          - !Ref AWS::Region
-          - '-'
-          - 'smba-source-bucket'
+  # S3InvokeLambdaPermission:
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     Action: lambda:InvokeFunction
+  #     SourceAccount: !Ref 'AWS::AccountId'
+  #     FunctionName: !GetAtt SMBAETLLambdaFunction.Arn
+  #     Principal: s3.amazonaws.com
+  #     SourceArn: !Join
+  #       - ''
+  #       - - 'arn:'
+  #         - !Ref AWS::Partition
+  #         - ':s3:::'
+  #         - !Ref AWS::AccountId
+  #         - '-'
+  #         - !Ref AWS::Region
+  #         - '-'
+  #         - 'smba-source-bucket'
 
-  SMBATargetS3Bucket:
-    Type: "AWS::S3::Bucket"
-    Properties:
-      BucketName: !Join ["-", [ !Ref AWS::AccountId, !Ref "AWS::Region", "smba-tarket-bucket"] ]  
-      LoggingConfiguration:
-        DestinationBucketName: !Ref SMBAAccessLogS3Bucket
-        LogFilePrefix: "target-access/"
-      AccessControl: "LogDeliveryWrite"
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: "aws:kms"
-              KMSMasterKeyID:
-                Ref: "S3KMSKey"
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
+  # SMBATargetS3Bucket:
+  #   Type: "AWS::S3::Bucket"
+  #   Properties:
+  #     BucketName: !Join ["-", [ !Ref AWS::AccountId, !Ref "AWS::Region", "smba-tarket-bucket"] ]  
+  #     LoggingConfiguration:
+  #       DestinationBucketName: !Ref SMBAAccessLogS3Bucket
+  #       LogFilePrefix: "target-access/"
+  #     AccessControl: "LogDeliveryWrite"
+  #     BucketEncryption:
+  #       ServerSideEncryptionConfiguration:
+  #         - ServerSideEncryptionByDefault:
+  #             SSEAlgorithm: "aws:kms"
+  #             KMSMasterKeyID:
+  #               Ref: "S3KMSKey"
+  #     PublicAccessBlockConfiguration:
+  #       BlockPublicAcls: true
+  #       BlockPublicPolicy: true
+  #       IgnorePublicAcls: true
+  #       RestrictPublicBuckets: true
   
-  SMBAAccessLogS3Bucket:
-    Type: "AWS::S3::Bucket"
-    Properties:
-      BucketName: !Join ["-", [ !Ref AWS::AccountId, !Ref "AWS::Region", "smba-accesslog-bucket"] ]  
-      LoggingConfiguration: {}
-      AccessControl: "Private"
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: "AES256"
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
+  # SMBAAccessLogS3Bucket:
+  #   Type: "AWS::S3::Bucket"
+  #   Properties:
+  #     BucketName: !Join ["-", [ !Ref AWS::AccountId, !Ref "AWS::Region", "smba-accesslog-bucket"] ]  
+  #     LoggingConfiguration: {}
+  #     AccessControl: "Private"
+  #     BucketEncryption:
+  #       ServerSideEncryptionConfiguration:
+  #         - ServerSideEncryptionByDefault:
+  #             SSEAlgorithm: "AES256"
+  #     PublicAccessBlockConfiguration:
+  #       BlockPublicAcls: true
+  #       BlockPublicPolicy: true
+  #       IgnorePublicAcls: true
+  #       RestrictPublicBuckets: true
 
-  SMBAAccessLogS3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref SMBAAccessLogS3Bucket
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-        - Sid: SMBAAccessLogS3BucketPolicy
-          Effect: Allow
-          Principal:
-            Service: logging.s3.amazonaws.com
-          Action:
-          - s3:PutObject
-          Resource: !Join
-            - ''
-            - - 'arn:'
-              - !Ref AWS::Partition
-              - ':s3:::'
-              - !Ref AWS::AccountId
-              - '-'
-              - !Ref AWS::Region
-              - '-'
-              - 'smba-accesslog-bucket/*'
+  # SMBAAccessLogS3BucketPolicy:
+  #   Type: AWS::S3::BucketPolicy
+  #   Properties:
+  #     Bucket: !Ref SMBAAccessLogS3Bucket
+  #     PolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #       - Sid: SMBAAccessLogS3BucketPolicy
+  #         Effect: Allow
+  #         Principal:
+  #           Service: logging.s3.amazonaws.com
+  #         Action:
+  #         - s3:PutObject
+  #         Resource: !Join
+  #           - ''
+  #           - - 'arn:'
+  #             - !Ref AWS::Partition
+  #             - ':s3:::'
+  #             - !Ref AWS::AccountId
+  #             - '-'
+  #             - !Ref AWS::Region
+  #             - '-'
+  #             - 'smba-accesslog-bucket/*'
 
-  SMBAETLLambdaFunction:
+  # SMBAETLLambdaFunction:
+  #   Type: "AWS::Lambda::Function"
+  #   Properties:
+  #     Description: "ETL Lambda"
+  #     FunctionName: "SMBAETLLambdaFunction"
+  #     Role: !GetAtt 'SMBAETLLambdaFunctionRole.Arn'
+  #     PackageType: "Zip"
+  #     Runtime: "python3.8"
+  #     Handler: "index.lambda_handler"
+  #     MemorySize: 128
+  #     Timeout: 120
+  #     VpcConfig:
+  #       SecurityGroupIds:
+  #         - !Ref SMBAlambdaSG
+  #       SubnetIds:
+  #         - !Ref SMBALambdaSubnet1
+  #         - !Ref SMBALambdaSubnet2
+  #     Environment:
+  #       Variables:
+  #         SMBAclusterEndpoint: !Ref SMBAclusterEndpoint
+  #         SMBAsecretArn: !Ref SMBAsecretArn
+  #     Code:
+  #       ZipFile: |
+  #         import os
+  #         import boto3
+  #         from os import walk
+  #         import base64
+  #         import math
+  #         from botocore.exceptions import ClientError
+
+  #         def lambda_handler(event, context):
+  #             print('## ENVIRONMENT VARIABLES')
+  #             print(os.environ)
+  #             print('## EVENT')
+  #             print(event)
+  #             get_secret(os.environ.get('SMBAsecretArn'))
+
+  #         def get_secret(secret_name):
+  #             region_name = os.environ.get('AWS_REGION')
+  #             print('secret_name ' + secret_name)
+  #             # Create a Secrets Manager client
+  #             session = boto3.session.Session()
+  #             client = session.client(
+  #                 service_name='secretsmanager',
+  #                 region_name=region_name
+  #             )
+
+  #             try:
+  #                 get_secret_value_response = client.get_secret_value(
+  #                     SecretId=secret_name
+  #                 )
+  #                 print('get_secret_value_response: ', get_secret_value_response)
+  #             except ClientError as e:
+  #                 if e.response['Error']['Code'] == 'DecryptionFailureException':
+  #                     # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
+  #                     # Deal with the exception here, and/or rethrow at your discretion.
+  #                     raise e
+  #                 elif e.response['Error']['Code'] == 'InternalServiceErrorException':
+  #                     # An error occurred on the server side.
+  #                     # Deal with the exception here, and/or rethrow at your discretion.
+  #                     raise e
+  #                 elif e.response['Error']['Code'] == 'InvalidParameterException':
+  #                     # You provided an invalid value for a parameter.
+  #                     # Deal with the exception here, and/or rethrow at your discretion.
+  #                     raise e
+  #                 elif e.response['Error']['Code'] == 'InvalidRequestException':
+  #                     # You provided a parameter value that is not valid for the current state of the resource.
+  #                     # Deal with the exception here, and/or rethrow at your discretion.
+  #                     raise e
+  #                 elif e.response['Error']['Code'] == 'ResourceNotFoundException':
+  #                     # We can't find the resource that you asked for.
+  #                     # Deal with the exception here, and/or rethrow at your discretion.
+  #                     raise e
+  #             else:
+  #                 # Decrypts secret using the associated KMS key.
+  #                 # Depending on whether the secret is a string or binary, one of these fields will be populated.
+  #                 if 'SecretString' in get_secret_value_response:
+  #                     secret = get_secret_value_response['SecretString']
+  #                     print('secret: ', secret)
+  #                 else:
+  #                     decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+  #                     print('decoded_binary_secret: ', + decoded_binary_secret)
+
+  DCSEmailCreateLambdaFunction:
     Type: "AWS::Lambda::Function"
     Properties:
-      Description: "ETL Lambda"
-      FunctionName: "SMBAETLLambdaFunction"
-      Role: !GetAtt 'SMBAETLLambdaFunctionRole.Arn'
+      Description: "DCS Email Create Lambda Function"
+      FunctionName: "DCSEmailCreateLambdaFunction"
+      Role: !GetAtt 'DCSLambdaFunctionRole.Arn'
       PackageType: "Zip"
       Runtime: "python3.8"
       Handler: "index.lambda_handler"
@@ -204,14 +287,14 @@ Resources:
       Timeout: 120
       VpcConfig:
         SecurityGroupIds:
-          - !Ref SMBAlambdaSG
+          - !Ref DCSlambdaSG
         SubnetIds:
-          - !Ref SMBALambdaSubnet1
-          - !Ref SMBALambdaSubnet2
+          - !Ref DCSLambdaSubnet1
+          - !Ref DCSLambdaSubnet2
       Environment:
         Variables:
-          SMBAclusterEndpoint: !Ref SMBAclusterEndpoint
-          SMBAsecretArn: !Ref SMBAsecretArn
+          DCSclusterEndpoint: !Ref DCSclusterEndpoint
+          DCSsecretArn: !Ref DCSsecretArn
       Code:
         ZipFile: |
           import os
@@ -226,7 +309,7 @@ Resources:
               print(os.environ)
               print('## EVENT')
               print(event)
-              get_secret(os.environ.get('SMBAsecretArn'))
+              get_secret(os.environ.get('DCSsecretArn'))
 
           def get_secret(secret_name):
               region_name = os.environ.get('AWS_REGION')
@@ -273,42 +356,6 @@ Resources:
                   else:
                       decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
                       print('decoded_binary_secret: ', + decoded_binary_secret)
-
-  DCSEmailCreateLambdaFunction:
-    Type: "AWS::Lambda::Function"
-    Properties:
-      Description: "DCS Email Create Lambda Function"
-      FunctionName: "DCSEmailCreateLambdaFunction"
-      Role: !GetAtt 'DCSLambdaFunctionRole.Arn'
-      PackageType: "Zip"
-      Runtime: "python3.8"
-      Handler: "index.lambda_handler"
-      MemorySize: 128
-      Timeout: 120
-      VpcConfig:
-        SecurityGroupIds:
-          - !Ref DCSlambdaSG
-        SubnetIds:
-          - !Ref DCSLambdaSubnet1
-          - !Ref DCSLambdaSubnet2
-      Environment:
-        Variables:
-          SMBAclusterEndpoint: !Ref SMBAclusterEndpoint
-          SMBAsecretArn: !Ref SMBAsecretArn
-          DCSclusterEndpoint: !Ref DCSclusterEndpoint
-          DCSsecretArn: !Ref DCSsecretArn
-      Code:
-        ZipFile: |
-          import os
-          from os import walk
-          import base64
-          import math
-
-          def lambda_handler(event, context):
-              print('## ENVIRONMENT VARIABLES')
-              print(os.environ)
-              print('## EVENT')
-              print(event)
   
   DCSEmailConsumerLambdaFunction:
     Type: "AWS::Lambda::Function"
@@ -379,134 +426,134 @@ Resources:
               except KeyError:
                   raise Exception('Missing required parameter in event: "operation"')
   
-  SMBAETLLambdaFunctionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: SMBAETLLambdaFunctionRole
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Path: /
-      Policies:
-        - PolicyName: SMBAETLLambdaFunctionRole-Logs
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource:
-                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
-              - Effect: Allow
-                Action:
-                  - xray:PutTraceSegments
-                  - xray:PutTelemetryRecords
-                Resource: '*'
-        - PolicyName: SMBAETLLambdaFunctionRole-KMS
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - kms:DescribeKey
-                  - kms:TagResource
-                  - kms:PutKeyPolicy
-                  - kms:GetKeyRotationStatus
-                  - kms:EnableKeyRotation
-                Resource:
-                  - !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
-              - Effect: "Allow"
-                Action:
-                  - kms:CreateKey
-                  - kms:ListAliases
-                Resource: "*"
-              - Effect: "Allow"
-                Action:
-                  - kms:CreateAlias
-                Resource:
-                  - !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/*
-                  - !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
-        - PolicyName: SMBAETLLambdaFunctionRole-S3
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - s3:GetObject
-                Resource:
-                  - !Join
-                    - ''
-                    - - 'arn:'
-                      - !Ref AWS::Partition
-                      - ':s3:::'
-                      - !Ref AWS::AccountId
-                      - '-'
-                      - !Ref AWS::Region
-                      - '-'
-                      - 'smba-source-bucket/*'
-              - Effect: "Allow"
-                Action:
-                  - s3:PutObject
-                Resource:
-                  - !Join
-                    - ''
-                    - - 'arn:'
-                      - !Ref AWS::Partition
-                      - ':s3:::'
-                      - !Ref AWS::AccountId
-                      - '-'
-                      - !Ref AWS::Region
-                      - '-'
-                      - 'smba-tarket-bucket/*'
-        - PolicyName: SMBAETLLambdaFunctionRole-SSM
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - ssm:PutParameter
-                  - ssm:GetParameter
-                  - ssm:DeleteParameter
-                  - ssm:GetParametersByPath
-                Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
-              - Effect: Allow
-                Action:
-                  - ssm:DescribeParameters
-                Resource: '*' # The APIs above only support '*' resource.
-        - PolicyName: SMBAETLLambdaFunctionRole-VPC
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - ec2:DescribeNetworkInterfaces
-                  - ec2:CreateNetworkInterface
-                  - ec2:DeleteNetworkInterface
-                  - ec2:DescribeInstances
-                  - ec2:AttachNetworkInterface
-                Resource: "*"
-        - PolicyName: SMBAETLLambdaFunctionRole-Secrets
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - secretsmanager:ListSecrets
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - secretsmanager:GetResourcePolicy
-                  - secretsmanager:GetSecretValue
-                  - secretsmanager:DescribeSecret
-                  - secretsmanager:ListSecretVersionIds
-                Resource:
-                  - !Ref SMBAsecretArn
+  # SMBAETLLambdaFunctionRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     RoleName: SMBAETLLambdaFunctionRole
+  #     AssumeRolePolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service: lambda.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     Path: /
+  #     Policies:
+  #       - PolicyName: SMBAETLLambdaFunctionRole-Logs
+  #         PolicyDocument:
+  #           Version: '2012-10-17'
+  #           Statement:
+  #             - Effect: Allow
+  #               Action:
+  #                 - logs:CreateLogGroup
+  #                 - logs:CreateLogStream
+  #                 - logs:PutLogEvents
+  #               Resource:
+  #                 - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+  #             - Effect: Allow
+  #               Action:
+  #                 - xray:PutTraceSegments
+  #                 - xray:PutTelemetryRecords
+  #               Resource: '*'
+  #       - PolicyName: SMBAETLLambdaFunctionRole-KMS
+  #         PolicyDocument:
+  #           Version: '2012-10-17'
+  #           Statement:
+  #             - Effect: "Allow"
+  #               Action:
+  #                 - kms:DescribeKey
+  #                 - kms:TagResource
+  #                 - kms:PutKeyPolicy
+  #                 - kms:GetKeyRotationStatus
+  #                 - kms:EnableKeyRotation
+  #               Resource:
+  #                 - !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
+  #             - Effect: "Allow"
+  #               Action:
+  #                 - kms:CreateKey
+  #                 - kms:ListAliases
+  #               Resource: "*"
+  #             - Effect: "Allow"
+  #               Action:
+  #                 - kms:CreateAlias
+  #               Resource:
+  #                 - !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/*
+  #                 - !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
+  #       - PolicyName: SMBAETLLambdaFunctionRole-S3
+  #         PolicyDocument:
+  #           Version: '2012-10-17'
+  #           Statement:
+  #             - Effect: "Allow"
+  #               Action:
+  #                 - s3:GetObject
+  #               Resource:
+  #                 - !Join
+  #                   - ''
+  #                   - - 'arn:'
+  #                     - !Ref AWS::Partition
+  #                     - ':s3:::'
+  #                     - !Ref AWS::AccountId
+  #                     - '-'
+  #                     - !Ref AWS::Region
+  #                     - '-'
+  #                     - 'smba-source-bucket/*'
+  #             - Effect: "Allow"
+  #               Action:
+  #                 - s3:PutObject
+  #               Resource:
+  #                 - !Join
+  #                   - ''
+  #                   - - 'arn:'
+  #                     - !Ref AWS::Partition
+  #                     - ':s3:::'
+  #                     - !Ref AWS::AccountId
+  #                     - '-'
+  #                     - !Ref AWS::Region
+  #                     - '-'
+  #                     - 'smba-tarket-bucket/*'
+  #       - PolicyName: SMBAETLLambdaFunctionRole-SSM
+  #         PolicyDocument:
+  #           Version: '2012-10-17'
+  #           Statement:
+  #             - Effect: Allow
+  #               Action:
+  #                 - ssm:PutParameter
+  #                 - ssm:GetParameter
+  #                 - ssm:DeleteParameter
+  #                 - ssm:GetParametersByPath
+  #               Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+  #             - Effect: Allow
+  #               Action:
+  #                 - ssm:DescribeParameters
+  #               Resource: '*' # The APIs above only support '*' resource.
+  #       - PolicyName: SMBAETLLambdaFunctionRole-VPC
+  #         PolicyDocument:
+  #           Version: '2012-10-17'
+  #           Statement:
+  #             - Effect: Allow
+  #               Action:
+  #                 - ec2:DescribeNetworkInterfaces
+  #                 - ec2:CreateNetworkInterface
+  #                 - ec2:DeleteNetworkInterface
+  #                 - ec2:DescribeInstances
+  #                 - ec2:AttachNetworkInterface
+  #               Resource: "*"
+  #       - PolicyName: SMBAETLLambdaFunctionRole-Secrets
+  #         PolicyDocument:
+  #           Version: '2012-10-17'
+  #           Statement:
+  #             - Effect: Allow
+  #               Action:
+  #                 - secretsmanager:ListSecrets
+  #               Resource: "*"
+  #             - Effect: Allow
+  #               Action:
+  #                 - secretsmanager:GetResourcePolicy
+  #                 - secretsmanager:GetSecretValue
+  #                 - secretsmanager:DescribeSecret
+  #                 - secretsmanager:ListSecretVersionIds
+  #               Resource:
+  #                 - !Ref SMBAsecretArn
 
   DCSLambdaFunctionRole:
     Type: AWS::IAM::Role
